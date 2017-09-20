@@ -1,4 +1,4 @@
-import { Directive, ElementRef, Input, ApplicationRef, ComponentFactoryResolver } from '@angular/core';
+import { Directive, ElementRef, Input, ApplicationRef, ComponentFactoryResolver, HostListener } from '@angular/core';
 import { Platform } from 'ionic-angular';
 import { TooltipBox } from './tooltip-box.component';
 var Tooltip = (function () {
@@ -11,14 +11,15 @@ var Tooltip = (function () {
         this.duration = 3000;
         this._arrow = false;
         this._navTooltip = false;
-        this.canShow = true;
+        this._canShow = true;
+        this._active = false;
     }
     Object.defineProperty(Tooltip.prototype, "navTooltip", {
         get: function () {
             return this._navTooltip;
         },
         set: function (val) {
-            this._navTooltip = typeof val !== 'boolean' || val != false;
+            this._navTooltip = typeof val !== 'boolean' || val !== false;
         },
         enumerable: true,
         configurable: true
@@ -26,7 +27,43 @@ var Tooltip = (function () {
     Object.defineProperty(Tooltip.prototype, "arrow", {
         get: function () { return this._arrow; },
         set: function (val) {
-            this._arrow = typeof val !== 'boolean' || val != false;
+            this._arrow = typeof val !== 'boolean' || val !== false;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Tooltip.prototype, "active", {
+        get: function () { return this._active; },
+        set: function (val) {
+            this._active = typeof val !== 'boolean' || val !== false;
+            this._active
+                ? this.canShow && this.showTooltip()
+                : this._removeTooltip();
+        },
+        enumerable: true,
+        configurable: true
+    });
+    /**
+     * Show the tooltip immediately after initiating view if set to
+     */
+    Tooltip.prototype.ngAfterViewInit = function () {
+        if (this._active) {
+            this.trigger();
+        }
+    };
+    Object.defineProperty(Tooltip.prototype, "canShow", {
+        /**
+         * @return {boolean} TRUE if the tooltip can be shown
+         */
+        get: function () {
+            return this._canShow && this.tooltip !== '';
+        },
+        /**
+         * Set the canShow property
+         * Ensure that tooltip is shown only if the tooltip string is not falsey
+         */
+        set: function (show) {
+            this._canShow = show;
         },
         enumerable: true,
         configurable: true
@@ -74,8 +111,26 @@ var Tooltip = (function () {
                 }
                 tooltipComponent.arrow = arrowPosition;
             }
-            _this.tooltipTimeout = setTimeout(_this._removeTooltip.bind(_this), _this.duration);
+            if (!_this._active) {
+                _this.tooltipTimeout = setTimeout(_this._removeTooltip.bind(_this), _this.duration);
+            }
         });
+    };
+    Tooltip.prototype.onClick = function () {
+        if (this.event === 'click')
+            this.trigger();
+    };
+    Tooltip.prototype.onPress = function () {
+        if (this.event === 'press')
+            this.trigger();
+    };
+    Tooltip.prototype.onMouseEnter = function () {
+        if (this.event === 'hover')
+            this.active = true;
+    };
+    Tooltip.prototype.onMouseLeave = function () {
+        if (this.event === 'hover')
+            this.active = false;
     };
     Tooltip.prototype._createTooltipComponent = function () {
         var viewport = this.appRef.components[0]._component._viewport, componentFactory = this._componentFactoryResolver.resolveComponentFactory(TooltipBox);
@@ -139,6 +194,7 @@ var Tooltip = (function () {
         }, 300);
     };
     Tooltip.prototype._resetTimer = function () {
+        this.active = false;
         clearTimeout(this.tooltipTimeout);
         this.tooltipTimeout = setTimeout(this._removeTooltip.bind(this), this.duration);
     };
@@ -147,11 +203,7 @@ var Tooltip = (function () {
 export { Tooltip };
 Tooltip.decorators = [
     { type: Directive, args: [{
-                selector: '[tooltip]',
-                host: {
-                    '(press)': 'event === "press" && trigger()',
-                    '(click)': 'event === "click" && trigger()'
-                }
+                selector: '[tooltip]'
             },] },
 ];
 /** @nocollapse */
@@ -169,5 +221,10 @@ Tooltip.propDecorators = {
     'navTooltip': [{ type: Input },],
     'arrow': [{ type: Input },],
     'duration': [{ type: Input },],
+    'active': [{ type: Input },],
+    'onClick': [{ type: HostListener, args: ['click',] },],
+    'onPress': [{ type: HostListener, args: ['press',] },],
+    'onMouseEnter': [{ type: HostListener, args: ['mouseenter',] },],
+    'onMouseLeave': [{ type: HostListener, args: ['mouseleave',] },],
 };
 //# sourceMappingURL=tooltip.directive.js.map
