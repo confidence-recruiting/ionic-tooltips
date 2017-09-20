@@ -1,18 +1,14 @@
 import {
   Directive, ElementRef, Input, ApplicationRef, ComponentFactoryResolver,
-  ViewContainerRef, ComponentRef
+  ViewContainerRef, ComponentRef, AfterViewInit, HostListener
 } from '@angular/core';
 import { Platform } from 'ionic-angular';
 import { TooltipBox } from './tooltip-box.component';
 
 @Directive({
-  selector: '[tooltip]',
-  host: {
-    '(press)': 'event === "press" && trigger()',
-    '(click)': 'event === "click" && trigger()'
-  }
+  selector: '[tooltip]'
 })
-export class Tooltip {
+export class Tooltip implements AfterViewInit {
 
   @Input() tooltip: string;
 
@@ -20,11 +16,11 @@ export class Tooltip {
 
   @Input() positionH: string;
 
-  @Input() event: 'press' | 'click' = 'click';
+  @Input() event: 'press' | 'click' | 'hover' = 'click';
 
   @Input()
   set navTooltip(val: boolean) {
-    this._navTooltip = typeof val !== 'boolean' || val != false;
+    this._navTooltip = typeof val !== 'boolean' || val !== false;
   }
   get navTooltip(): boolean {
     return this._navTooltip;
@@ -32,24 +28,57 @@ export class Tooltip {
 
   @Input()
   set arrow(val: boolean) {
-    this._arrow = typeof val !== 'boolean' || val != false;
+    this._arrow = typeof val !== 'boolean' || val !== false;
   }
   get arrow(): boolean { return this._arrow; }
 
   @Input() duration: number = 3000;
 
+  @Input() set active(val: boolean) {
+    this._active = typeof val !== 'boolean' || val !== false;
+    this._active
+      ? this.canShow && this.showTooltip()
+      : this._removeTooltip();
+  }
+  get active(): boolean { return this._active; }
+
   private _arrow: boolean = false;
   private _navTooltip: boolean = false;
   private tooltipElement: ComponentRef<TooltipBox>;
   private tooltipTimeout: any;
-  private canShow: boolean = true;
+  private _canShow: boolean = true;
+  private _active: boolean = false;
 
   constructor(
-      private el: ElementRef
-      , private appRef: ApplicationRef
-      , private platform: Platform
-      , private _componentFactoryResolver: ComponentFactoryResolver
+    private el: ElementRef,
+    private appRef: ApplicationRef,
+    private platform: Platform,
+    private _componentFactoryResolver: ComponentFactoryResolver
   ) {}
+
+  /**
+   * Show the tooltip immediately after initiating view if set to
+   */
+  ngAfterViewInit() {
+    if (this._active) {
+      this.trigger();
+    }
+  }
+
+  /**
+   * Set the canShow property
+   * Ensure that tooltip is shown only if the tooltip string is not falsey
+   */
+  set canShow(show: boolean) {
+    this._canShow = show;
+  }
+
+  /**
+   * @return {boolean} TRUE if the tooltip can be shown
+   */
+  get canShow(): boolean {
+    return this._canShow && this.tooltip !== '';
+  }
 
   /**
    * Handles the click/press event and shows a tooltip.
@@ -99,25 +128,47 @@ export class Tooltip {
         tooltipComponent.arrow = arrowPosition;
       }
 
-      this.tooltipTimeout = setTimeout(this._removeTooltip.bind(this), this.duration);
+      if (!this._active) {
+        this.tooltipTimeout = setTimeout(this._removeTooltip.bind(this), this.duration);
+      }
 
     });
 
   }
 
+  @HostListener('click')
+  onClick(): void {
+    if (this.event === 'click') this.trigger();
+  }
+
+  @HostListener('press')
+  onPress(): void {
+    if (this.event === 'press') this.trigger();
+  }
+
+  @HostListener('mouseenter')
+  onMouseEnter(): void {
+    if (this.event === 'hover') this.active = true;
+  }
+
+  @HostListener('mouseleave')
+  onMouseLeave(): void {
+    if (this.event === 'hover') this.active = false;
+  }
+
   private _createTooltipComponent() {
     let
-        viewport: ViewContainerRef = (<any>this.appRef.components[0])._component._viewport,
-        componentFactory = this._componentFactoryResolver.resolveComponentFactory(TooltipBox);
+      viewport: ViewContainerRef = (<any>this.appRef.components[0])._component._viewport,
+      componentFactory = this._componentFactoryResolver.resolveComponentFactory(TooltipBox);
 
     this.tooltipElement = viewport.createComponent(componentFactory);
   }
 
   private _getTooltipPosition() {
     const
-        tooltipNativeElement: HTMLElement = this.tooltipElement.instance.getNativeElement(),
-        el: HTMLElement = this.el.nativeElement,
-        rect: ClientRect = el.getBoundingClientRect();
+      tooltipNativeElement: HTMLElement = this.tooltipElement.instance.getNativeElement(),
+      el: HTMLElement = this.el.nativeElement,
+      rect: ClientRect = el.getBoundingClientRect();
 
     let positionLeft: number, positionTop: number, spacing: number = 10;
 
@@ -133,7 +184,7 @@ export class Tooltip {
     } else if (this.positionH === 'left') {
       positionLeft = rect.left - spacing - tooltipNativeElement.offsetWidth;
     } else if (this.navTooltip) {
-      positionLeft = rect.left + el.offsetWidth / 2
+      positionLeft = rect.left + el.offsetWidth / 2;
     } else {
       positionLeft = rect.left;
     }
@@ -179,6 +230,7 @@ export class Tooltip {
   }
 
   private _resetTimer() {
+    this.active = false;
     clearTimeout(this.tooltipTimeout);
     this.tooltipTimeout = setTimeout(this._removeTooltip.bind(this), this.duration);
   }

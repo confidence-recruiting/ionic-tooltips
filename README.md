@@ -1,7 +1,6 @@
-[![npm](https://img.shields.io/npm/l/express.svg)](https://www.npmjs.com/package/ionic-tooltips/)
-
-[![NPM](https://nodei.co/npm/ionic-tooltips.png?stars&downloads)](https://nodei.co/npm/ionic-tooltips/)
-[![NPM](https://nodei.co/npm-dl/ionic-tooltips.png?months=6&height=2)](https://nodei.co/npm/ionic-tooltips/)
+[![npm](https://img.shields.io/npm/l/ionic-tooltips.svg)](https://www.npmjs.com/package/ionic-tooltips/)
+[![npm](https://img.shields.io/npm/dt/ionic-tooltips.svg)](https://www.npmjs.com/package/ionic-tooltips)
+[![npm](https://img.shields.io/npm/dm/ionic-tooltips.svg)](https://www.npmjs.com/package/ionic-tooltips)
 
 # Ionic Tooltips
 Tooltips module for apps built with Ionic Framework.
@@ -22,7 +21,7 @@ Here's a quick example to show a tooltip below a button:
 ```html
 <!-- positionV specifies where the tooltip should be displayed vertically, can be either top or bottom -->
 <!-- arrow tells the tooltip directive to show an arrow above the tooltip box -->
-<button ion-button [tooltip]="I'm a tooltip below a button" positionV="bottom" arrow>
+<button ion-button tooltip="I'm a tooltip below a button" positionV="bottom" arrow>
   Press me to see a tooltip
 </button>
 ```
@@ -34,7 +33,7 @@ And here's another example to show a tooltip below a nav button:
     <ion-title>Page title</ion-title>
     <ion-buttons end>
       <!-- navTooltip tells the tooltip directive that this is a nav button -->
-      <ion-button icon-only [tooltip]="Call" navTooltip>
+      <ion-button icon-only tooltip="Call" navTooltip>
         <ion-icon name="call"></ion-icon>
       </ion-button>
     </ion-buttons>
@@ -51,7 +50,7 @@ npm i --save --save-exact @angular/animations@4.1.3
 ```shell
 npm i --save ionic-tooltips
 ```
-3. Import `TooltipsModule` in your `@NgModule`. If you are using lazy module loading in your app, you might need to import it more than once.
+3. Import `TooltipsModule` in your `@NgModule`. If you are using lazy module loading, then you need to import it in the modules where it's used.
 ```ts
 import { TooltipsModule } from 'ionic-tooltips';
 
@@ -63,6 +62,18 @@ import { TooltipsModule } from 'ionic-tooltips';
    ]
 })
 export class MyModule { ... }
+```
+4. Import `BrowserAnimationsModule` in your app's main `@NgModule`.
+```ts
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+
+@NgModule({
+  ...
+  imports: [
+    ...
+    BrowserAnimationsModule
+  ]
+})
 ```
 
 Now you're ready to use this module. See information below for usage.
@@ -81,13 +92,17 @@ The `tooltip` directive takes a string, which will be used as the tooltip text. 
 (string) specifies the horizontal position of the tooltip. Can be either `'right'` or `'left'`.
 
 #### `event`
-(string) the event to show the tooltip on. Can be either `'click'` or `'press'`. Defaults to `'press'`.
+(string) the event to show the tooltip on. Can be either `'hover'`, `'click'` or `'press'`. Defaults to `'press'`.  
+Note: `'hover'` only works on desktop.
 
 #### `arrow`
 (boolean) add this attribute or set it's value to true to show an arrow attached to the tooltip. Defaults to `false`.
 
 #### `duration`
 (number) number of milliseconds to show the tooltip for. Defaults to `3000`.
+
+#### `active`
+(boolean) add this attribute or set it's value to true to display the tooltip. Defaults to `false`.
 
 <br><br>
 ## Contribution
